@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { PrismaClient, LeadStatus, Prisma } from "@prisma/client";
+import { PrismaClient, LeadStatus,  } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query", "info", "warn", "error"], // Enable Prisma query logging for debugging
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,31 +13,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Invalid or empty data" }, { status: 400 });
     }
 
-    const createdLeads = await prisma.$transaction(
-      leads.map((lead) => {
-        if (!lead || typeof lead !== "object") {
-          throw new Error("Invalid lead data received");
-        }
+    // Prisma transaction needs Prisma queries, not async functions
+    const transactions = leads.map((lead) => {
+      if (!lead || typeof lead !== "object") {
+        throw new Error("Invalid lead data received");
+      }
 
-        const {
-          name,
-          email,
-          company,
-          phone,
-          city,
-          designaction,
-          message,
-          status,
-          callBackTime,
-          employeeId,
-        } = lead;
+      const {
+        name,
+        email,
+        company,
+        phone,
+        city,
+        designaction,
+        message,
+        status,
+        callBackTime,
+        employeeId,
+      } = lead;
 
-        const validStatus: LeadStatus = Object.values(LeadStatus).includes(status)
-          ? (status as LeadStatus)
-          : LeadStatus.COLD;
+      const validStatus: LeadStatus = Object.values(LeadStatus).includes(status)
+        ? (status as LeadStatus)
+        : LeadStatus.COLD;
 
-        // Construct createData without assigning `undefined`
-        const createData: Prisma.LeadCreateInput = {
+      return prisma.lead.create({
+        data: {
           name: name ?? null,
           email: email ?? null,
           company: company ?? null,
@@ -45,12 +47,12 @@ export async function POST(request: NextRequest) {
           message: message ?? null,
           status: validStatus,
           callBackTime: callBackTime ? new Date(callBackTime) : null,
-          ...(employeeId && { employee: { connect: { id: employeeId } } }), // Avoids `undefined`
-        };
+          ...(employeeId && { employee: { connect: { id: employeeId } } }),
+        },
+      });
+    });
 
-        return prisma.lead.create({ data: createData });
-      })
-    );
+    const createdLeads = await prisma.$transaction(transactions); // Correct usage
 
     return NextResponse.json(
       { message: "Leads imported successfully", count: createdLeads.length },
