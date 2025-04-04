@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { PrismaClient, LeadStatus } from "@prisma/client";
 
 const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"], // Enable Prisma query logging for debugging
+  log: ["query", "info", "warn", "error"],
 });
 
 export async function POST(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         name: name ?? null,
         email: email ?? null,
         company: company ?? null,
-        phone: phone ?? null,
+        phone: phone ? String(phone) : null, // 🛠️ Fix: convert number to string
         city: city ?? null,
         designaction: designaction ?? null,
         message: message ?? null,
@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Use createMany for batch insert
     const result = await prisma.lead.createMany({
       data: formattedLeads,
     });
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error importing leads:", error);
+    console.error("Error importing leads:", (error as Error).message);
     return NextResponse.json(
       { message: "Error importing leads", error: (error as Error).message },
       { status: 500 }
