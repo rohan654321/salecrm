@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { PrismaClient, LeadStatus,  } from "@prisma/client";
+import { PrismaClient, LeadStatus } from "@prisma/client";
 
 const prisma = new PrismaClient({
   log: ["query", "info", "warn", "error"], // Enable Prisma query logging for debugging
@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Invalid or empty data" }, { status: 400 });
     }
 
-    // Prisma transaction needs Prisma queries, not async functions
-    const transactions = leads.map((lead) => {
+    const formattedLeads = leads.map((lead) => {
       if (!lead || typeof lead !== "object") {
         throw new Error("Invalid lead data received");
       }
@@ -36,26 +35,30 @@ export async function POST(request: NextRequest) {
         ? (status as LeadStatus)
         : LeadStatus.COLD;
 
-      return prisma.lead.create({
-        data: {
-          name: name ?? null,
-          email: email ?? null,
-          company: company ?? null,
-          phone: phone ?? null,
-          city: city ?? null,
-          designaction: designaction ?? null,
-          message: message ?? null,
-          status: validStatus,
-          callBackTime: callBackTime ? new Date(callBackTime) : null,
-          ...(employeeId && { employee: { connect: { id: employeeId } } }),
-        },
-      });
+      return {
+        name: name ?? null,
+        email: email ?? null,
+        company: company ?? null,
+        phone: phone ?? null,
+        city: city ?? null,
+        designaction: designaction ?? null,
+        message: message ?? null,
+        status: validStatus,
+        callBackTime: callBackTime ? new Date(callBackTime) : null,
+        employeeId: employeeId ?? null,
+      };
     });
 
-    const createdLeads = await prisma.$transaction(transactions); // Correct usage
+    // Use createMany for batch insert
+    const result = await prisma.lead.createMany({
+      data: formattedLeads,
+    });
 
     return NextResponse.json(
-      { message: "Leads imported successfully", count: createdLeads.length },
+      {
+        message: "Leads imported successfully",
+        count: result.count,
+      },
       { status: 200 }
     );
   } catch (error) {
