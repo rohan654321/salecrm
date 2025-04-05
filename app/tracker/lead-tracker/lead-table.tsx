@@ -45,7 +45,7 @@ export default function LeadTable({ data }: LeadTableProps) {
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardContent className="pt-6 text-center">No lead data available for the selected period.</CardContent>
+        <CardContent className="pt-6 text-center">No lead data available for the selected period</CardContent>
       </Card>
     )
   }
