@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { ArrowLeft, Briefcase, LayoutDashboard, LogOut, Target, UserPlus, Users } from "lucide-react"; // Importing icons
-import { useRouter } from "next/navigation";
+import { ArrowLeft, Briefcase, LayoutDashboard, LogOut, Target, UserPlus, Users, BarChart } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab: string
+  setActiveTab: (tab: string) => void
 }
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const router = useRouter();
+  const router = useRouter()
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); // ✅ Remove JWT token
-    localStorage.removeItem("employee"); // ✅ Remove stored employee data
-    localStorage.removeItem("isAuthenticated"); // ✅ Ensure session is cleared
-    console.log("🔑 Token deleted successfully"); 
-    router.push("/"); // ✅ Redirect to login page
-  };
+    localStorage.removeItem("token") // ✅ Remove JWT token
+    localStorage.removeItem("employee") // ✅ Remove stored employee data
+    localStorage.removeItem("isAuthenticated") // ✅ Ensure session is cleared
+    console.log("🔑 Token deleted successfully")
+    router.push("/") // ✅ Redirect to login page
+  }
 
   return (
     <aside className="w-64 bg-blue-900 text-white p-6 flex flex-col min-h-screen fixed">
@@ -25,9 +25,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
       {/* Add Admin */}
       <button
-        className={`py-2 px-4 mb-2 rounded w-full flex items-center ${
-          activeTab === "add-admin" ? "bg-blue-700" : ""
-        }`}
+        className={`py-2 px-4 mb-2 rounded w-full flex items-center ${activeTab === "add-admin" ? "bg-blue-700" : ""}`}
         onClick={() => setActiveTab("add-admin")}
       >
         <UserPlus className="w-5 h-5 mr-2" />
@@ -69,20 +67,27 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
       {/* Set Targets */}
       <button
-        className={`py-2 px-4 mb-2 rounded w-full flex items-center ${
-          activeTab === "set-target" ? "bg-blue-700" : ""
-        }`}
+        className={`py-2 px-4 mb-2 rounded w-full flex items-center ${activeTab === "set-target" ? "bg-blue-700" : ""}`}
         onClick={() => setActiveTab("set-target")}
       >
         <Target className="w-5 h-5 mr-2" />
         Set Targets
       </button>
 
-      {/* Dashboard */}
+      {/* Leads Tracker - Fixed the active state check and onClick handler */}
       <button
         className={`py-2 px-4 mb-2 rounded w-full flex items-center ${
-          activeTab === "dashboard" ? "bg-blue-700" : ""
+          activeTab === "employeeTrackerDashboard" ? "bg-blue-700" : ""
         }`}
+        onClick={() => setActiveTab("tracker")}
+      >
+        <BarChart className="w-5 h-5 mr-2" />
+        Leads Tracker
+      </button>
+
+      {/* Dashboard */}
+      <button
+        className={`py-2 px-4 mb-2 rounded w-full flex items-center ${activeTab === "dashboard" ? "bg-blue-700" : ""}`}
         onClick={() => setActiveTab("dashboard")}
       >
         <LayoutDashboard className="w-5 h-5 mr-2" />
@@ -101,15 +106,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </button>
 
       {/* Logout Button */}
-      <button
-        className="py-2 px-4 bg-red-600 hover:bg-red-700 rounded flex items-center"
-        onClick={
-          handleLogout
-        }
-      >
+      <button className="py-2 px-4 bg-red-600 hover:bg-red-700 rounded flex items-center" onClick={handleLogout}>
         <LogOut className="w-5 h-5 mr-2" />
         Logout
       </button>
     </aside>
-  );
+  )
 }
+

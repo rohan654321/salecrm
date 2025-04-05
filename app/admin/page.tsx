@@ -1,47 +1,50 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Sidebar from "@/app/components/admin/Sidebar";
-import AddEmployee from "@/app/components/employee/AddEmployeeForm";
-import AddDepartment from "@/app/components/admin/department";
-import AddTarget from "@/app/components/admin/AddTarget";
-import DepartmentList from "@/app/admin/DepartmentList";
-import AdminForm from "../components/admin/adminform";
-import ManagerForm from "../components/managers/addManagerForm";
-import { Menu, X } from "lucide-react";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Sidebar from "@/app/components/admin/Sidebar"
+import AddEmployee from "@/app/components/employee/AddEmployeeForm"
+import AddDepartment from "@/app/components/admin/department"
+import AddTarget from "@/app/components/admin/AddTarget"
+import DepartmentList from "@/app/admin/DepartmentList"
+import AdminForm from "../components/admin/adminform"
+import ManagerForm from "../components/managers/addManagerForm"
+import { Menu, X } from "lucide-react"
+import LeadTracker from "../tracker/page"
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("dashboard")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
 
   // ✅ Check if user is authenticated
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token")
     if (!token) {
-      console.log("❌ No token found, redirecting to login...");
-      router.push("/admin-login"); // Redirect to login page if not authenticated
+      console.log("❌ No token found, redirecting to login...")
+      router.push("/admin-login") // Redirect to login page if not authenticated
     }
-  }, [router]);
+  }, [router])
 
   const renderContent = () => {
     switch (activeTab) {
       case "add-admin":
-        return <AdminForm />;
+        return <AdminForm />
       case "add-manager":
-        return <ManagerForm />;
+        return <ManagerForm />
       case "add-employee":
-        return <AddEmployee />;
+        return <AddEmployee />
       case "set-department-target":
-        return <AddDepartment />;
+        return <AddDepartment />
       case "set-target":
-        return <AddTarget />;
+        return <AddTarget />
+      case "tracker": // Fixed the case name to match the sidebar
+        return <LeadTracker />
       case "dashboard":
       default:
-        return <DepartmentList />;
+        return <DepartmentList />
     }
-  };
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -73,14 +76,11 @@ export default function AdminPage() {
 
         {/* Main Content Section */}
         <main className="flex-1 p-4 md:p-8 bg-blue-300 text-black overflow-y-auto">
-          <h1 className="hidden md:block text-3xl font-bold mb-6 text-white text-center">
-            Super Admin Dashboard
-          </h1>
-          <div className="bg-white p-4 rounded-lg shadow-md overflow-hidden">
-            {renderContent()}
-          </div>
+          <h1 className="hidden md:block text-3xl font-bold mb-6 text-white text-center">Super Admin Dashboard</h1>
+          <div className="bg-white p-4 rounded-lg shadow-md overflow-hidden">{renderContent()}</div>
         </main>
       </div>
     </div>
-  );
+  )
 }
+
