@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { PrismaClient, type Lead, type LeadStatus } from "@prisma/client"
+import { PrismaClient, type LeadStatus } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
@@ -11,21 +11,32 @@ interface WhereClause {
   employeeId?: string | { in: string[] }
 }
 
-interface LeadWithEmployee extends Lead {
-  employee: {
-    id: string
-    name: string
-    department?: {
-      id: string
-      name: string
-    }
-  }
-}
-
 interface LeadsByDay {
   date: string
   totalLeads: number
-  leads: LeadWithEmployee[]
+  leads: {
+    id: string
+    name: string
+    email: string | null
+    company: string
+    phone: string | null
+    city: string
+    designaction: string | null
+    message: string | null
+    status: LeadStatus
+    soldAmount: number | null
+    callBackTime: Date | null
+    employeeId: string
+    createdAt: Date
+    employee: {
+      id: string
+      name: string
+      department: {
+        id: string
+        name: string
+      } | null
+    }
+  }[]
   statuses: Record<LeadStatus, number>
   totalSoldAmount: number
 }
@@ -40,12 +51,8 @@ export async function GET(request: NextRequest) {
   try {
     const whereClause: WhereClause = {}
 
-    // Build date range filter
     if (startDate || endDate) {
-      const dateFilter: {
-        gte?: Date
-        lte?: Date
-      } = {}
+      const dateFilter: { gte?: Date; lte?: Date } = {}
 
       if (startDate) {
         const start = new Date(startDate)
@@ -143,16 +150,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const formattedLead: LeadWithEmployee = {
-        ...lead,
-        employee: {
-          id: lead.employee.id,
-          name: lead.employee.name,
-          department: lead.employee.department,
-        },
-      }
-
-      leadsByDay[day].leads.push(formattedLead)
+      leadsByDay[day].leads.push(lead)
       leadsByDay[day].totalLeads += 1
       leadsByDay[day].statuses[lead.status] += 1
 
@@ -161,7 +159,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const result = Object.values(leadsByDay).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const result = Object.values(leadsByDay).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
 
     return NextResponse.json(result)
   } catch (error) {

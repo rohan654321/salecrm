@@ -6,6 +6,12 @@ const prisma = new PrismaClient()
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
+      where: {
+        departmentId: {
+          not: undefined,
+        }
+        
+      },
       select: {
         id: true,
         name: true,
@@ -23,6 +29,7 @@ export async function GET() {
         name: "asc",
       },
     })
+    
 
     return NextResponse.json(employees)
   } catch (error) {
