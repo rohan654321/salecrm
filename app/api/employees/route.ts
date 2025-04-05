@@ -3,15 +3,21 @@ import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
+interface EmployeeWithOptionalDepartment {
+  id: string
+  name: string
+  email: string
+  role: string
+  departmentId: string | null
+  department: {
+    id: string
+    name: string
+  } | null
+}
+
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
-      where: {
-        departmentId: {
-          not: undefined,
-        }
-        
-      },
       select: {
         id: true,
         name: true,
@@ -29,9 +35,11 @@ export async function GET() {
         name: "asc",
       },
     })
-    
 
-    return NextResponse.json(employees)
+    // Type assertion to handle potential null departments
+    const typedEmployees = employees as EmployeeWithOptionalDepartment[]
+
+    return NextResponse.json(typedEmployees)
   } catch (error) {
     console.error("Error fetching employees:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
@@ -39,4 +47,3 @@ export async function GET() {
     await prisma.$disconnect()
   }
 }
-
