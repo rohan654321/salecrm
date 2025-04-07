@@ -104,23 +104,53 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // First, get all leads without including departments
     const leads = await prisma.lead.findMany({
       where: whereClause,
       include: {
         employee: {
-          include: {
-            department: true
-          }
-        }
+          select: {
+            id: true,
+            name: true,
+            departmentId: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       },
     })
 
+    // Then, for each lead, fetch the department separately if the employee has one
+    const processedLeads = await Promise.all(
+      leads.map(async (lead) => {
+        let department = null
+
+        if (lead.employee && lead.employee.departmentId) {
+          try {
+            department = await prisma.department.findUnique({
+              where: { id: lead.employee.departmentId },
+              select: { id: true, name: true },
+            })
+          } catch (error) {
+            console.error(`Error fetching department for employee ${lead.employee.id}:`, error)
+          }
+        }
+
+        // Create a new lead object with the department information
+        return {
+          ...lead,
+          employee: {
+            ...lead.employee,
+            department,
+          },
+        } as Lead
+      }),
+    )
+
     const leadsByDay: Record<string, LeadsByDay> = {}
 
-    leads.forEach((lead) => {
+    processedLeads.forEach((lead) => {
       const day = lead.createdAt.toISOString().split("T")[0]
 
       if (!leadsByDay[day]) {
@@ -139,7 +169,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      leadsByDay[day].leads.push(lead as Lead)
+      leadsByDay[day].leads.push(lead)
       leadsByDay[day].totalLeads += 1
       leadsByDay[day].statuses[lead.status] += 1
 
@@ -148,9 +178,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const result = Object.values(leadsByDay).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    )
+    const result = Object.values(leadsByDay).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     return NextResponse.json(result)
   } catch (error) {
@@ -160,3 +188,4 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect()
   }
 }
+
