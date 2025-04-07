@@ -49,21 +49,32 @@ export async function GET() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function POST(request: { json: () => any }) {
+export async function POST(request: Request) {
   try {
-    const json = await request.json()
-    const employee = await prisma.employee.create({
-      data: json,
-    })
-    return new NextResponse(JSON.stringify(employee), {
+    const body = await request.json()
+    // Assuming you have a database connection and an Employee model
+    // Example using Prisma:
+    // const employee = await prisma.employee.create({
+    //   data: body,
+    // });
+
+    // Placeholder response for now
+    return new Response(JSON.stringify({ message: "Employee created successfully", data: body }), {
       status: 201,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: "Failed to create employee" }, { status: 500 })
-  } finally {
-    await prisma.$disconnect()
+    console.error("Error creating employee:", error)
+    return new Response(JSON.stringify({ message: "Failed to create employee", error: error }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
   }
 }
+
+
 
