@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format, differenceInDays } from "date-fns"
-import { CalendarIcon, ListIcon, UsersIcon } from "lucide-react"
+import { CalendarIcon, ListIcon, UsersIcon, XIcon } from "lucide-react"
 import LeadTable from "./lead-tracker/lead-table"
 import EmployeePerformanceTable from "./employeePerformence"
 import type { DailyLeadStats, Employee, EmployeePerformance } from "./lead-tracker/type"
@@ -18,7 +18,7 @@ export default function LeadTracker() {
   const [departments, setDepartments] = useState<{ id: string; name: string }[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState("all")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [leadStats, setLeadStats] = useState<DailyLeadStats[]>([])
   const [employeePerformance, setEmployeePerformance] = useState<EmployeePerformance[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -74,6 +74,9 @@ export default function LeadTracker() {
           const formattedDate = selectedDate.toISOString().split("T")[0]
           params.append("startDate", formattedDate)
           params.append("endDate", formattedDate)
+        } else {
+          // If no date is selected, don't add date parameters to fetch all data
+          // The API will return all leads without date filtering
         }
 
         if (selectedDepartment && selectedDepartment !== "all") {
@@ -104,7 +107,10 @@ export default function LeadTracker() {
       }
     }
 
-    fetchLeadStats()
+    // Only fetch if employees are loaded
+    if (employees.length > 0) {
+      fetchLeadStats()
+    }
   }, [selectedEmployee, selectedDepartment, selectedDate, employees])
 
   // Calculate employee performance metrics
@@ -179,20 +185,27 @@ export default function LeadTracker() {
     if (selectedDate) {
       return format(selectedDate, "PPP")
     }
-    return "Select date"
+    return "All dates"
+  }
+
+  // Clear date selection
+  const clearDateSelection = () => {
+    setSelectedDate(undefined)
   }
 
   const NoDataMessage = () => (
     <Card>
       <CardContent className="py-10 text-center">
         <p className="text-lg font-medium text-muted-foreground">
-          No leads were added on {selectedDate ? format(selectedDate, "MMMM d, yyyy") : "the selected date"}.
+          {selectedDate
+            ? `No leads were added on ${format(selectedDate, "MMMM d, yyyy")}.`
+            : "No leads found for the selected filters."}
         </p>
       </CardContent>
     </Card>
   )
 
-  const hasDataForSelectedDate = () => {
+  const hasDataForSelectedFilters = () => {
     return leadStats.length > 0
   }
 
@@ -204,11 +217,11 @@ export default function LeadTracker() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>Total Leads</CardTitle>
-            <CardDescription>All leads on selected date</CardDescription>
+            <CardDescription>{selectedDate ? format(selectedDate, "MMMM d, yyyy") : "All time"}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {hasDataForSelectedDate() ? leadStats.reduce((sum, day) => sum + day.totalLeads, 0) : 0}
+              {hasDataForSelectedFilters() ? leadStats.reduce((sum, day) => sum + day.totalLeads, 0) : 0}
             </div>
           </CardContent>
         </Card>
@@ -220,7 +233,7 @@ export default function LeadTracker() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {hasDataForSelectedDate() ? leadStats.reduce((sum, day) => sum + day.statuses.SOLD, 0) : 0}
+              {hasDataForSelectedFilters() ? leadStats.reduce((sum, day) => sum + day.statuses.SOLD, 0) : 0}
             </div>
           </CardContent>
         </Card>
@@ -233,7 +246,7 @@ export default function LeadTracker() {
           <CardContent>
             <div className="text-3xl font-bold">
               $
-              {hasDataForSelectedDate()
+              {hasDataForSelectedFilters()
                 ? leadStats.reduce((sum, day) => sum + day.totalSoldAmount, 0).toLocaleString()
                 : 0}
             </div>
@@ -272,18 +285,31 @@ export default function LeadTracker() {
           </SelectContent>
         </Select>
 
-        {/* Single Date Picker */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full md:w-[200px] justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {formatDate()}
+        {/* Date Picker with Clear Button */}
+        <div className="relative w-full md:w-[200px]">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formatDate()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
+            </PopoverContent>
+          </Popover>
+          {selectedDate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full"
+              onClick={clearDateSelection}
+              aria-label="Clear date selection"
+            >
+              <XIcon className="h-4 w-4" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
-          </PopoverContent>
-        </Popover>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -301,7 +327,7 @@ export default function LeadTracker() {
         <TabsContent value="performance" className="mt-6">
           {isLoading ? (
             <div className="flex justify-center py-12">Loading performance data...</div>
-          ) : leadStats.length === 0 ? (
+          ) : !hasDataForSelectedFilters() ? (
             <NoDataMessage />
           ) : (
             <EmployeePerformanceTable
@@ -315,7 +341,7 @@ export default function LeadTracker() {
         <TabsContent value="table" className="mt-6">
           {isLoading ? (
             <div className="flex justify-center py-12">Loading table data...</div>
-          ) : leadStats.length === 0 ? (
+          ) : !hasDataForSelectedFilters() ? (
             <NoDataMessage />
           ) : (
             <LeadTable data={leadStats} />

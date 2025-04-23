@@ -60,20 +60,17 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: any = {} // Using 'any' temporarily to bypass strict type checking
 
-    if (startDate || endDate) {
+    // Only add date filters if both startDate and endDate are provided
+    if (startDate && endDate) {
       const dateFilter: { gte?: Date; lte?: Date } = {}
 
-      if (startDate) {
-        const start = new Date(startDate)
-        start.setHours(0, 0, 0, 0)
-        dateFilter.gte = start
-      }
+      const start = new Date(startDate)
+      start.setHours(0, 0, 0, 0)
+      dateFilter.gte = start
 
-      if (endDate) {
-        const end = new Date(endDate)
-        end.setHours(23, 59, 59, 999)
-        dateFilter.lte = end
-      }
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      dateFilter.lte = end
 
       whereClause.createdAt = dateFilter
     }
@@ -188,4 +185,3 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect()
   }
 }
-

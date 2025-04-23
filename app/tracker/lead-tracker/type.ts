@@ -55,4 +55,3 @@ export interface EmployeePerformance {
   lastLeadDate: string | null
   status: "green" | "yellow" | "red"
 }
-
