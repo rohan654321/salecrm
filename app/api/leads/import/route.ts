@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         status,
         callBackTime,
         employeeId,
-        soldAmount,
+        // Remove soldAmount from the destructuring to avoid sending it to Prisma
       } = lead
 
       // ---- FIXED STATUS HANDLING ----
@@ -46,16 +46,7 @@ export async function POST(request: NextRequest) {
       }
       // ---- END FIX ----
 
-      // Convert soldAmount to a valid number if it exists
-      let numericSoldAmount: number | null = null
-      if (soldAmount !== undefined && soldAmount !== null) {
-        const numericAmount = Number(soldAmount)
-        if (!isNaN(numericAmount)) {
-          numericSoldAmount = numericAmount
-        }
-      }
-
-      // Create the full lead object including soldAmount
+      // Create the lead object WITHOUT soldAmount
       const formattedLead = {
         name: name ?? null,
         email: email ?? null,
@@ -67,7 +58,7 @@ export async function POST(request: NextRequest) {
         status: cleanedStatus,
         callBackTime: callBackTime ? new Date(callBackTime) : null,
         employeeId: employeeId ?? null,
-        soldAmount: numericSoldAmount ?? null,
+        // soldAmount is removed from here
       }
 
       return formattedLead
@@ -88,7 +79,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error("Error importing leads:", (error as Error).message)
-    return NextResponse.json({ message: "Error importing leads to", error: (error as Error).message }, { status: 500 })
+    return NextResponse.json({ message: "Error importing leads", error: (error as Error).message }, { status: 500 })
   } finally {
     await prisma.$disconnect()
   }
