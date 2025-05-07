@@ -1,17 +1,6 @@
-import { LeadStatus, PrismaClient } from "@prisma/client";
+import { LeadStatus } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
-
-// ---- PrismaClient Singleton Fix (for Vercel) ----
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error", "warn"], // reduce logs in prod
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-// ---- END Singleton ----
+import { prisma } from "@/app/lib/prisma"; // <---- import singleton here
 
 // Utility function to chunk array into batches
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -117,7 +106,5 @@ export async function POST(request: NextRequest) {
       { message: "Error importing leads", error: (error as Error).message },
       { status: 500 }
     );
-  } finally {
-    // ---- No disconnect on serverless (singleton handles it) ----
   }
 }
