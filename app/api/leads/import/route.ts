@@ -5,6 +5,15 @@ const prisma = new PrismaClient({
   log: ["query", "info", "warn", "error"],
 })
 
+// Utility function to chunk array into batches
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const result: T[][] = []
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size))
+  }
+  return result
+}
+
 export async function POST(request: NextRequest) {
   try {
     const leads = await request.json().catch(() => null)
@@ -32,7 +41,7 @@ export async function POST(request: NextRequest) {
         soldAmount,
       } = lead
 
-      // ---- FIXED STATUS HANDLING ----
+      // ---- STATUS HANDLING ----
       let cleanedStatus: LeadStatus = LeadStatus.COLD // default
 
       if (typeof status === "string") {
@@ -44,7 +53,6 @@ export async function POST(request: NextRequest) {
           console.warn(`Invalid status "${status}" found, defaulting to COLD`)
         }
       }
-      // ---- END FIX ----
 
       // Convert soldAmount to a valid number if it exists
       let numericSoldAmount: number | null = null
@@ -55,7 +63,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create the full lead object including soldAmount
       const formattedLead = {
         name: name ?? null,
         email: email ?? null,
@@ -73,22 +80,36 @@ export async function POST(request: NextRequest) {
       return formattedLead
     })
 
-    console.log("Formatted leads for import:", formattedLeads)
+    console.log(`Preparing to import ${formattedLeads.length} leads`)
 
-    const result = await prisma.lead.createMany({
-      data: formattedLeads,
-    })
+    // Batch insert — recommended chunk size (100-200)
+    const BATCH_SIZE = 200
+    const chunks = chunkArray(formattedLeads, BATCH_SIZE)
+
+    let totalInserted = 0
+
+    for (const chunk of chunks) {
+      const result = await prisma.lead.createMany({
+        data: chunk,
+        // skipDuplicates: true, // Optional: Skip duplicates based on unique constraints
+      })
+      totalInserted += result.count
+      console.log(`Inserted batch of ${chunk.length} leads — cumulative: ${totalInserted}`)
+    }
 
     return NextResponse.json(
       {
         message: "Leads imported successfully",
-        count: result.count,
+        count: totalInserted,
       },
       { status: 200 },
     )
   } catch (error) {
-    console.error("Error importing leads:", (error as Error).message)
-    return NextResponse.json({ message: "Error importing leads to", error: (error as Error).message }, { status: 500 })
+    console.error("Error import leads:", (error as Error).message)
+    return NextResponse.json(
+      { message: "Error importing leads", error: (error as Error).message },
+      { status: 500 },
+    )
   } finally {
     await prisma.$disconnect()
   }
