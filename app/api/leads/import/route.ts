@@ -1,30 +1,38 @@
-import { LeadStatus, PrismaClient } from "@prisma/client"
-import { type NextRequest, NextResponse } from "next/server"
+import { LeadStatus, PrismaClient } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient({
-  log: ["query", "info", "warn", "error"],
-})
+// ---- PrismaClient Singleton Fix (for Vercel) ----
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ["error", "warn"], // reduce logs in prod
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// ---- END Singleton ----
 
 // Utility function to chunk array into batches
 function chunkArray<T>(array: T[], size: number): T[][] {
-  const result: T[][] = []
+  const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size))
+    result.push(array.slice(i, i + size));
   }
-  return result
+  return result;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const leads = await request.json().catch(() => null)
+    const leads = await request.json().catch(() => null);
 
     if (!Array.isArray(leads) || leads.length === 0) {
-      return NextResponse.json({ message: "Invalid or empty data" }, { status: 400 })
+      return NextResponse.json({ message: "Invalid or empty data" }, { status: 400 });
     }
 
     const formattedLeads = leads.map((lead) => {
       if (!lead || typeof lead !== "object") {
-        throw new Error("Invalid lead data received")
+        throw new Error("Invalid lead data received");
       }
 
       const {
@@ -39,27 +47,27 @@ export async function POST(request: NextRequest) {
         callBackTime,
         employeeId,
         soldAmount,
-      } = lead
+      } = lead;
 
       // ---- STATUS HANDLING ----
-      let cleanedStatus: LeadStatus = LeadStatus.COLD // default
+      let cleanedStatus: LeadStatus = LeadStatus.COLD; // default
 
       if (typeof status === "string") {
-        const trimmedUpperStatus = status.trim().toUpperCase()
+        const trimmedUpperStatus = status.trim().toUpperCase();
 
         if (Object.values(LeadStatus).includes(trimmedUpperStatus as LeadStatus)) {
-          cleanedStatus = trimmedUpperStatus as LeadStatus
+          cleanedStatus = trimmedUpperStatus as LeadStatus;
         } else {
-          console.warn(`Invalid status "${status}" found, defaulting to COLD`)
+          console.warn(`Invalid status "${status}" found, defaulting to COLD`);
         }
       }
 
       // Convert soldAmount to a valid number if it exists
-      let numericSoldAmount: number | null = null
+      let numericSoldAmount: number | null = null;
       if (soldAmount !== undefined && soldAmount !== null) {
-        const numericAmount = Number(soldAmount)
+        const numericAmount = Number(soldAmount);
         if (!isNaN(numericAmount)) {
-          numericSoldAmount = numericAmount
+          numericSoldAmount = numericAmount;
         }
       }
 
@@ -75,26 +83,25 @@ export async function POST(request: NextRequest) {
         callBackTime: callBackTime ? new Date(callBackTime) : null,
         employeeId: employeeId ?? null,
         soldAmount: numericSoldAmount ?? null,
-      }
+      };
 
-      return formattedLead
-    })
+      return formattedLead;
+    });
 
-    console.log(`Preparing to import ${formattedLeads.length} leads`)
+    console.log(`Preparing to import ${formattedLeads.length} leads`);
 
-    // Batch insert — recommended chunk size (100-200)
-    const BATCH_SIZE = 200
-    const chunks = chunkArray(formattedLeads, BATCH_SIZE)
+    // ---- Batch insert ----
+    const BATCH_SIZE = 100; // safer on Vercel
+    const chunks = chunkArray(formattedLeads, BATCH_SIZE);
 
-    let totalInserted = 0
+    let totalInserted = 0;
 
     for (const chunk of chunks) {
       const result = await prisma.lead.createMany({
         data: chunk,
-        // skipDuplicates: true, // Optional: Skip duplicates based on unique constraints
-      })
-      totalInserted += result.count
-      console.log(`Inserted batch of ${chunk.length} leads — cumulative: ${totalInserted}`)
+      });
+      totalInserted += result.count;
+      console.log(`Inserted batch of ${chunk.length} leads — cumulative: ${totalInserted}`);
     }
 
     return NextResponse.json(
@@ -102,15 +109,15 @@ export async function POST(request: NextRequest) {
         message: "Leads imported successfully",
         count: totalInserted,
       },
-      { status: 200 },
-    )
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Error import leads:", (error as Error).message)
+    console.error("Error importing leads:", (error as Error).message);
     return NextResponse.json(
       { message: "Error importing leads", error: (error as Error).message },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   } finally {
-    await prisma.$disconnect()
+    // ---- No disconnect on serverless (singleton handles it) ----
   }
 }
