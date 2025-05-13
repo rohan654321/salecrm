@@ -3,18 +3,22 @@ import { jwtVerify } from "jose"
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the token from cookies
     const token = request.cookies.get("admin-token")?.value
 
     if (!token) {
       return NextResponse.json({ success: false, message: "Not authenticated" }, { status: 401 })
     }
 
-    // Verify the token
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET)
-    const { payload } = await jwtVerify(token, secret)
+    const secretKey = process.env.JWT_SECRET
+    if (!secretKey) {
+      throw new Error("JWT_SECRET not defined")
+    }
 
-    // Check if the user has admin role
+    const secret = new TextEncoder().encode(secretKey)
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ["HS256"],
+    })
+
     if (payload.role !== "admin") {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 })
     }
