@@ -1,45 +1,91 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Shield, Eye, EyeOff, ArrowLeft } from "lucide-react"; // ✅ Import Back Icon
-import Image from "next/image";
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { Shield, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import Image from "next/image"
 
 export default function AdminLogin() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // ✅ Toggle state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/admin/verify", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        })
+
+        // Only redirect if authentication is successful
+        if (res.ok) {
+          const data = await res.json()
+          if (data.success) {
+            router.push("/admin")
+          }
+        }
+      } catch (error) {
+        // If error, user is not authenticated, stay on login page
+        console.error("Auth check error:", error)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+
+    // Add a small delay before checking auth to prevent immediate redirects
+    // This helps break potential redirect loops
+    const timer = setTimeout(() => {
+      checkAuth()
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+    e.preventDefault()
+    setError("")
+    setLoading(true)
 
     try {
       const res = await fetch("/api/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      });
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        router.push("/admin");
+      if (res.ok && data.success) {
+        // No need to manually store token in localStorage as we're using HTTP-only cookies
+        router.push("/admin")
       } else {
-        setError(data.message || "Invalid credentials");
+        setError(data.message || "Invalid credentials")
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  // Don't render anything while checking authentication to prevent flashes
+  if (checkingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md flex justify-center">
+          <div className="animate-pulse">Checking authentication...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -51,7 +97,7 @@ export default function AdminLogin() {
       >
         {/* Back Button */}
         <button
-          onClick={() => router.back()} // ✅ Go back to the previous page
+          onClick={() => router.back()}
           className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition mb-4"
         >
           <ArrowLeft size={20} /> Back
@@ -83,14 +129,14 @@ export default function AdminLogin() {
             <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"} // ✅ Toggle input type
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
               />
-              {/* ✅ Eye Icon (Centered) */}
+              {/* Eye Icon (Centered) */}
               <button
                 type="button"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -115,5 +161,5 @@ export default function AdminLogin() {
         </form>
       </motion.div>
     </div>
-  );
+  )
 }

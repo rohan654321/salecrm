@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { Shield, User, Briefcase } from "lucide-react"; // Importing icons
-import { Typewriter } from "react-simple-typewriter"; // Typing effect
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import Image from "next/image"
+import { Shield, User, Briefcase } from "lucide-react" // Importing icons
+import { Typewriter } from "react-simple-typewriter" // Typing effect
 
 export default function Home() {
-  const router = useRouter();
-  const [showButtons, setShowButtons] = useState(false);
+  const router = useRouter()
+  const [showButtons, setShowButtons] = useState(false)
 
   useEffect(() => {
     setTimeout(() => {
-      setShowButtons(true);
-    }, 1500); // Delay buttons appearing after typing effect
-  }, []);
+      setShowButtons(true)
+    }, 1500) // Delay buttons appearing after typing effect
+  }, [])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-gray-100">
@@ -26,13 +26,7 @@ export default function Home() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="flex flex-col items-center mt-8 sm:mt-12"
       >
-        <Image
-          src="/Maxpo_Logo_Black.png"
-          alt="Logo"
-          width={200}
-          height={100}
-          className="w-44 sm:w-64"
-        />
+        <Image src="/Maxpo_Logo_Black.png" alt="Logo" width={200} height={100} className="w-44 sm:w-64" />
         {/* Typing Effect for Company Name */}
         <motion.h2
           initial={{ opacity: 0 }}
@@ -93,5 +87,5 @@ export default function Home() {
         </motion.div>
       )}
     </div>
-  );
+  )
 }

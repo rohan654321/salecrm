@@ -15,15 +15,38 @@ import LeadTracker from "../tracker/page"
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // ✅ Check if user is authenticated
+  // ✅ Check if user is authenticated using the API
   useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      console.log("❌ No token found, redirecting to login...")
-      router.push("/admin-login") // Redirect to login page if not authenticated
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true)
+        const res = await fetch("/api/admin/verify", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          // Add cache: 'no-store' to prevent caching of the verification request
+          cache: "no-store",
+        })
+
+        const data = await res.json()
+
+        if (!res.ok || !data.success) {
+          console.log("❌ Authentication failed, redirecting to login...")
+          router.push("/admin-login")
+          return
+        }
+
+        // Authentication successful
+        setIsLoading(false)
+      } catch (error) {
+        console.error("Auth check error:", error)
+        router.push("/admin-login")
+      }
     }
+
+    checkAuth()
   }, [router])
 
   const renderContent = () => {
@@ -44,6 +67,16 @@ export default function AdminPage() {
       default:
         return <DepartmentList />
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md flex justify-center">
+          <div className="animate-pulse">Checking authentication...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -83,4 +116,3 @@ export default function AdminPage() {
     </div>
   )
 }
-
