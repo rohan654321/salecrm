@@ -1,53 +1,68 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Briefcase, Eye, EyeOff, ArrowLeft } from "lucide-react"; // ✅ Import Back Icon
-import Image from "next/image";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { Briefcase, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import Image from "next/image"
 
 export default function ManagerLogin() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // ✅ Toggle State
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  // Check if already authenticated on page load
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (token) {
+      try {
+        // Basic validation that token exists and has expected format
+        // For better security, you should verify the token on the server
+        if (token.split(".").length === 3) {
+          router.push("/manager-dashboard")
+        }
+      } catch (err) {
+        // Invalid token, clear it
+        localStorage.removeItem("token")
+        localStorage.removeItem("manager")
+      }
+    }
+  }, [router])
 
   const handleLogin = async (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+    e.preventDefault()
+    setLoading(true)
+    setError("")
 
     try {
       const response = await fetch("/api/manager-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      });
+      })
 
-      const data = await response.json();
-      console.log("Login Response:", data); // ✅ Debugging Response
+      const data = await response.json()
 
       if (response.ok) {
-        console.log("Generated Token:", data.token); // ✅ Print Token in Console
+        // Store JWT Token Securely
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("manager", JSON.stringify(data.manager))
 
-        // ✅ Store JWT Token Securely
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("manager", JSON.stringify(data.manager));
-
-        // ✅ Redirect to dashboard
-        router.push(`/manager-dashboard`);
+        // Redirect to dashboard
+        router.push(`/manager-dashboard`)
       } else {
-        setError(data.message || "Invalid credentials");
+        setError(data.message || "Invalid credentials")
       }
     } catch (err) {
-      console.error("Login Error:", err);
-      setError("Something went wrong. Please try again later.");
+      console.error("Login Error:", err)
+      setError("Something went wrong. Please try again later.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -59,7 +74,7 @@ export default function ManagerLogin() {
       >
         {/* Back Button */}
         <button
-          onClick={() => router.back()} // ✅ Go back to the previous page
+          onClick={() => router.back()}
           className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition mb-4"
         >
           <ArrowLeft size={20} /> Back
@@ -93,14 +108,13 @@ export default function ManagerLogin() {
             <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"} // ✅ Toggle input type
+                type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
               />
-              {/* ✅ Eye Icon (Centered) */}
               <button
                 type="button"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -122,5 +136,5 @@ export default function ManagerLogin() {
         </form>
       </motion.div>
     </div>
-  );
+  )
 }

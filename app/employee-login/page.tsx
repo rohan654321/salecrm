@@ -1,47 +1,93 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { Loader2, User, Eye, EyeOff, ArrowLeft } from "lucide-react"; // ✅ Icons
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import Image from "next/image"
+import { Loader2, User, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import jwt from "jsonwebtoken"
 
 export default function EmployeeLogin() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // ✅ Password Toggle State
-  const router = useRouter();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
+
+  // Check if already authenticated on page load
+  useEffect(() => {
+    const checkExistingAuth = async () => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        try {
+          // Basic validation that token exists and has expected format
+          const decodedToken = jwt.decode(token)
+          const tokenInvalidationTime = localStorage.getItem("tokenInvalidationTime")
+
+          if (decodedToken && typeof decodedToken !== "string") {
+            const currentTime = Math.floor(Date.now() / 1000)
+
+            // Check if token is expired
+            if (decodedToken.exp && decodedToken.exp > currentTime) {
+              // Check if token was issued after the last invalidation time
+              if (
+                !tokenInvalidationTime ||
+                (decodedToken.iat && decodedToken.iat * 1000 > Number.parseInt(tokenInvalidationTime, 10))
+              ) {
+                const storedEmployee = localStorage.getItem("employee")
+                if (storedEmployee) {
+                  const employee = JSON.parse(storedEmployee)
+                  router.push(`/employee/${employee.id}`)
+                  return
+                }
+              }
+            }
+          }
+
+          // If we get here, token is invalid or expired
+          localStorage.removeItem("token")
+          localStorage.removeItem("employee")
+        } catch (err) {
+          // Invalid token, clear it
+          localStorage.removeItem("token")
+          localStorage.removeItem("employee")
+        }
+      }
+    }
+
+    checkExistingAuth()
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
 
     try {
       const res = await fetch("/api/employee-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      });
+      })
 
-      const data = await res.json();
-      console.log("Generated Token:", data.token); // ✅ Debugging: Print token
+      const data = await res.json()
 
       if (data.success && data.employee?.id) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("employee", JSON.stringify(data.employee));
-        router.push(`/employee/${data.employee.id}`); // ✅ Redirect to dashboard
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("employee", JSON.stringify(data.employee))
+        router.push(`/employee/${data.employee.id}`)
       } else {
-        setError("Invalid email or password");
+        setError("Invalid email or password")
       }
     } catch {
-      setError("Something went wrong. Try again!");
+      setError("Something went wrong. Try again!")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -51,7 +97,7 @@ export default function EmployeeLogin() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="p-6 bg-white shadow-lg rounded-lg w-full max-w-md"
       >
-        {/* ✅ Back Button */}
+        {/* Back Button */}
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition mb-4"
@@ -89,7 +135,7 @@ export default function EmployeeLogin() {
             />
           </div>
 
-          {/* Password Field with Eye Icon (Centered) */}
+          {/* Password Field with Eye Icon */}
           <div className="relative">
             <label className="text-sm font-medium text-gray-700">Password</label>
             <div className="relative">
@@ -101,7 +147,6 @@ export default function EmployeeLogin() {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-12"
               />
-              {/* ✅ Eye Icon Centered */}
               <button
                 type="button"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -127,5 +172,5 @@ export default function EmployeeLogin() {
         </form>
       </motion.div>
     </div>
-  );
+  )
 }

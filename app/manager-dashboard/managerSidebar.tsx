@@ -3,6 +3,7 @@
 import { ArrowLeft, Briefcase, LayoutDashboard, LogOut, Menu, Target, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useAuth } from "@/app/components/authProvider"
 
 interface SidebarProps {
   activeTab: string
@@ -11,14 +12,11 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const router = useRouter()
+  const { logout } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("employee")
-    localStorage.removeItem("isAuthenticated")
-    console.log("🔑 Token deleted successfully")
-    router.push("/")
+    logout()
   }
 
   const handleTabClick = (tab: string) => {
@@ -100,4 +98,3 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     </>
   )
 }
-

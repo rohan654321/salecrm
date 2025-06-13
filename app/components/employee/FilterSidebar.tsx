@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { LayoutDashboard, UserPlus, FileText, ArrowLeft, LogOut, X } from "lucide-react"
+import { useEmployeeAuth } from "./employee-auth-provider"
 
 interface EmployeeSidebarProps {
   activeTab: string
@@ -12,14 +13,7 @@ interface EmployeeSidebarProps {
 
 export default function EmployeeSidebar({ activeTab, setActiveTab, isOpen = false, onClose }: EmployeeSidebarProps) {
   const router = useRouter()
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("employee")
-    localStorage.removeItem("isAuthenticated")
-    console.log("🔑 Token deleted successfully")
-    router.push("/")
-  }
+  const { logout } = useEmployeeAuth()
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab)
@@ -93,10 +87,7 @@ export default function EmployeeSidebar({ activeTab, setActiveTab, isOpen = fals
         </button>
 
         {/* Logout Button */}
-        <button
-          className="py-2 px-4 bg-red-600 hover:bg-red-700 rounded flex items-center gap-3"
-          onClick={handleLogout}
-        >
+        <button className="py-2 px-4 bg-red-600 hover:bg-red-700 rounded flex items-center gap-3" onClick={logout}>
           <LogOut size={18} />
           Logout
         </button>
@@ -104,4 +95,3 @@ export default function EmployeeSidebar({ activeTab, setActiveTab, isOpen = fals
     </>
   )
 }
-
