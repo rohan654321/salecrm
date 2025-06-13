@@ -19,13 +19,10 @@ export default function ManagerLogin() {
     const token = localStorage.getItem("token")
     if (token) {
       try {
-        // Basic validation that token exists and has expected format
-        // For better security, you should verify the token on the server
         if (token.split(".").length === 3) {
           router.push("/manager-dashboard")
         }
-      } catch (err) {
-        // Invalid token, clear it
+      } catch {
         localStorage.removeItem("token")
         localStorage.removeItem("manager")
       }
@@ -47,11 +44,8 @@ export default function ManagerLogin() {
       const data = await response.json()
 
       if (response.ok) {
-        // Store JWT Token Securely
         localStorage.setItem("token", data.token)
         localStorage.setItem("manager", JSON.stringify(data.manager))
-
-        // Redirect to dashboard
         router.push(`/manager-dashboard`)
       } else {
         setError(data.message || "Invalid credentials")
@@ -90,7 +84,6 @@ export default function ManagerLogin() {
         {error && <p className="text-red-500 text-center mt-2">{error}</p>}
 
         <form className="mt-6" onSubmit={handleLogin}>
-          {/* Email Field */}
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-semibold mb-2">Email</label>
             <input
@@ -103,7 +96,6 @@ export default function ManagerLogin() {
             />
           </div>
 
-          {/* Password Field with Toggle Icon */}
           <div className="mb-4 relative">
             <label className="block text-gray-700 text-sm font-semibold mb-2">Password</label>
             <div className="relative">
@@ -125,7 +117,6 @@ export default function ManagerLogin() {
             </div>
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
             className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition"

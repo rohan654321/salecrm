@@ -1,12 +1,26 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+  useCallback,
+} from "react"
 import { useRouter } from "next/navigation"
 import jwt from "jsonwebtoken"
 
+interface Employee {
+  id: string
+  name: string
+  email: string
+  // Add more fields as needed
+}
+
 interface EmployeeAuthContextType {
   isAuthenticated: boolean
-  employee: any | null
+  employee: Employee | null
   logout: () => void
 }
 
@@ -20,12 +34,28 @@ export const useEmployeeAuth = () => useContext(EmployeeAuthContext)
 
 export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [employee, setEmployee] = useState<any>(null)
+  const [employee, setEmployee] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  const handleLogout = useCallback(
+    async (redirect = true) => {
+      localStorage.setItem("tokenInvalidationTime", Date.now().toString())
+      localStorage.removeItem("token")
+      localStorage.removeItem("employee")
+      localStorage.removeItem("isAuthenticated")
+
+      setIsAuthenticated(false)
+      setEmployee(null)
+
+      if (redirect) {
+        router.push("/employee-login")
+      }
+    },
+    [router]
+  )
+
   useEffect(() => {
-    // Check authentication on component mount
     const checkAuth = async () => {
       const token = localStorage.getItem("token")
       const storedEmployee = localStorage.getItem("employee")
@@ -35,71 +65,49 @@ export function EmployeeAuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false)
         setEmployee(null)
         setIsLoading(false)
-        return false
+        return
       }
 
       try {
-        // Check if token has been manually invalidated
         if (tokenInvalidationTime) {
           const invalidationTime = Number.parseInt(tokenInvalidationTime, 10)
           const tokenData = jwt.decode(token)
 
-          // If token was issued before invalidation time, it's invalid
-          if (tokenData && typeof tokenData !== "string" && tokenData.iat && tokenData.iat * 1000 < invalidationTime) {
-            localStorage.removeItem("token")
-            localStorage.removeItem("employee")
-            setIsAuthenticated(false)
-            setEmployee(null)
+          if (
+            tokenData &&
+            typeof tokenData !== "string" &&
+            tokenData.iat &&
+            tokenData.iat * 1000 < invalidationTime
+          ) {
+            await handleLogout(false)
             setIsLoading(false)
-            return false
+            return
           }
         }
 
-        // Verify token is valid
         const decodedToken = jwt.decode(token)
 
-        // Check if token is expired
         if (decodedToken && typeof decodedToken !== "string" && decodedToken.exp) {
           const currentTime = Math.floor(Date.now() / 1000)
           if (decodedToken.exp < currentTime) {
-            // Token expired
             await handleLogout(false)
-            return false
+            setIsLoading(false)
+            return
           }
         }
 
         setIsAuthenticated(true)
         setEmployee(storedEmployee ? JSON.parse(storedEmployee) : null)
         setIsLoading(false)
-        return true
       } catch (error) {
         console.error("Auth error:", error)
         await handleLogout(false)
-        return false
+        setIsLoading(false)
       }
     }
 
     checkAuth()
-  }, [router])
-
-  const handleLogout = async (redirect = true) => {
-    // Set invalidation timestamp for all previous tokens
-    localStorage.setItem("tokenInvalidationTime", Date.now().toString())
-
-    // Clear auth data
-    localStorage.removeItem("token")
-    localStorage.removeItem("employee")
-    localStorage.removeItem("isAuthenticated")
-
-    // Update state
-    setIsAuthenticated(false)
-    setEmployee(null)
-
-    // Redirect if needed
-    if (redirect) {
-      router.push("/employee-login")
-    }
-  }
+  }, [handleLogout])
 
   const logout = () => handleLogout(true)
 

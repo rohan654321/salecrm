@@ -4,9 +4,16 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { useRouter } from "next/navigation"
 import jwt from "jsonwebtoken"
 
+interface Manager {
+  id: string
+  name: string
+  email: string
+  // Add any other manager properties you use
+}
+
 interface AuthContextType {
   isAuthenticated: boolean
-  manager: any | null
+  manager: Manager | null
   logout: () => void
 }
 
@@ -20,12 +27,11 @@ export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [manager, setManager] = useState<any>(null)
+  const [manager, setManager] = useState<Manager | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    // Check authentication on component mount
     const checkAuth = () => {
       const token = localStorage.getItem("token")
       const storedManager = localStorage.getItem("manager")
@@ -38,14 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // Verify token is valid (this is a basic check, server should validate too)
         const decodedToken = jwt.decode(token)
 
-        // Check if token is expired
         if (decodedToken && typeof decodedToken !== "string" && decodedToken.exp) {
           const currentTime = Math.floor(Date.now() / 1000)
           if (decodedToken.exp < currentTime) {
-            // Token expired
             localStorage.removeItem("token")
             localStorage.removeItem("manager")
             setIsAuthenticated(false)

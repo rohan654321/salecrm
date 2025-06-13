@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -23,16 +22,13 @@ export default function EmployeeLogin() {
       const token = localStorage.getItem("token")
       if (token) {
         try {
-          // Basic validation that token exists and has expected format
           const decodedToken = jwt.decode(token)
           const tokenInvalidationTime = localStorage.getItem("tokenInvalidationTime")
 
           if (decodedToken && typeof decodedToken !== "string") {
             const currentTime = Math.floor(Date.now() / 1000)
 
-            // Check if token is expired
             if (decodedToken.exp && decodedToken.exp > currentTime) {
-              // Check if token was issued after the last invalidation time
               if (
                 !tokenInvalidationTime ||
                 (decodedToken.iat && decodedToken.iat * 1000 > Number.parseInt(tokenInvalidationTime, 10))
@@ -47,11 +43,9 @@ export default function EmployeeLogin() {
             }
           }
 
-          // If we get here, token is invalid or expired
           localStorage.removeItem("token")
           localStorage.removeItem("employee")
-        } catch (err) {
-          // Invalid token, clear it
+        } catch {
           localStorage.removeItem("token")
           localStorage.removeItem("employee")
         }
